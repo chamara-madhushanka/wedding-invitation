@@ -127,6 +127,30 @@ html.lock{overflow:hidden}
 .mu.playing .on{display:block}.mu.playing .off{display:none}
 .mu.playing{animation:pulse 2.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{box-shadow:0 6px 18px rgba(120,70,80,.25),0 0 0 0 rgba(212,120,139,.35)}50%{box-shadow:0 6px 18px rgba(120,70,80,.25),0 0 0 9px rgba(212,120,139,0)}}
+[hidden]{display:none!important}
+.rl{max-width:340px;margin:8px 0 4px}
+.rdl{font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:.16em;color:var(--accent);margin:6px 0 0}
+.rsum{width:100%;display:flex;flex-direction:column;gap:2px;margin:16px 0 4px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--solid)}
+.rsum b{font-family:Cinzel,Georgia,serif;font-weight:500;font-size:12px;letter-spacing:.14em}
+.rsum span{font-size:16px;color:var(--muted)}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{position:relative;flex:1 1 130px;margin:0;text-align:center;font:inherit;letter-spacing:0;color:var(--ink);cursor:pointer}
+.opt input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;padding:0;cursor:pointer}
+.opt span{display:block;padding:11px 12px;border:1px solid var(--line);border-radius:999px;background:var(--solid);font-size:17px;font-weight:600;line-height:1.2;transition:background .25s,color .25s,border-color .25s}
+.opt input:checked+span{background:linear-gradient(135deg,#eeb0bc,#cc7a8e);border-color:transparent;color:#fff}
+.opt input:focus-visible+span{outline:2px solid var(--accent);outline-offset:3px}
+.chip{flex:0 1 auto}
+.chip input:checked+span::before{content:"\2713\00a0"}
+#yes{display:flex;flex-direction:column;gap:12px}
+.step{display:flex;align-items:center;justify-content:center;gap:18px}
+.step button{width:42px;height:42px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--solid);color:var(--gold);font-size:22px;line-height:1;cursor:pointer}
+.step button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.step output{min-width:42px;font-family:Cinzel,Georgia,serif;font-size:22px;text-align:center}
+textarea{width:100%;box-sizing:border-box;min-height:84px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--solid);color:var(--ink);font:inherit;resize:vertical}
+.rh{font-size:15px;margin:2px 0 0}
+#ty{width:100%;display:flex;flex-direction:column;align-items:center;margin-top:10px}
+#ty h3{margin:6px 0}
+.lnk{margin-top:14px;padding:4px;background:none;border:0;color:var(--muted);font:inherit;font-size:16px;text-decoration:underline;cursor:pointer}
 </style>
 </head>
 <body>
@@ -180,6 +204,9 @@ var CONFIG = {
   venueAddress: "",           // e.g. "Nuwara Eliya, Sri Lanka"
   mapQuery: "Invite Hotel Kurunegala",               // text typed into Google Maps, e.g. "Araliya Grand, Nuwara Eliya"
 
+  rsvpMessage: "Your presence would mean the world to us. Please let us know if you can join the celebration, so we can welcome you with all our love.",
+  rsvpMaxGuests: 10,          // most guests a single reply can include
+
   rsvpWhatsApp: "94760015710",           // digits only with country code, e.g. "94771234567"
   closing: "Thank you for being part of our special day."
 };
@@ -213,17 +240,41 @@ if(wd){var p=function(n){return (n<10?"0":"")+n;},ds=wd.getFullYear()+p(wd.getMo
 h+='</section>';
 h+='<section id="venue"><div class="cap">The setting</div><h2>Wedding Venue</h2><h3>'+esc(C.venueName)+'</h3><p class="muted">'+esc(C.venueAddress)+'</p>'+
  (C.mapQuery?'<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(C.mapQuery)+'">VIEW ON MAP</a>':'')+'</section>';
-h+='<section id="rsvp"><div class="cap">Kindly reply</div><h2>Will You Join Us?</h2><p>We joyfully await your presence.'+(parse(C.rsvpDeadline)?'<br>Please reply by '+esc(fmt(C.rsvpDeadline,true))+'.':'')+'</p>'+
- '<form id="f"><label>FULL NAME</label><input id="fn" required><label>WILL YOU BE ATTENDING?</label><select id="fa"><option>Joyfully accept</option><option>Regretfully decline</option></select>'+
- '<label>NUMBER OF GUESTS</label><input id="fg" type="number" min="1" max="10" value="1"><button class="btn" type="submit">SEND RSVP</button><p class="muted" id="fm"></p></form></section>';
+var evc=C.events.length>1;
+h+='<section id="rsvp"><div class="cap">Kindly reply</div><h2>Will You Join Us?</h2>'+
+ '<p class="rl">'+esc(C.rsvpMessage||"Your presence would mean the world to us. Please let us know if you can join the celebration, so we can welcome you with all our love.")+'</p>'+
+ (parse(C.rsvpDeadline)?'<p class="rdl">Kindly reply by '+esc(fmt(C.rsvpDeadline,true))+'</p>':'')+
+ '<div class="rsum"><b>'+esc(fmt(C.weddingDate))+'</b><span>'+esc(C.venueName)+'</span></div>'+
+ '<form id="f"><label for="fn">FULL NAME</label><input id="fn" required autocomplete="name">'+
+ '<label id="lt">WILL YOU BE ATTENDING?</label><div class="opts" role="radiogroup" aria-labelledby="lt"><label class="opt"><input type="radio" name="fa" value="yes" checked><span>Joyfully accept</span></label><label class="opt"><input type="radio" name="fa" value="no"><span>Regretfully decline</span></label></div>'+
+ '<div id="yes"><label id="lg">GUESTS, INCLUDING YOU</label><div class="step" role="group" aria-labelledby="lg"><button type="button" id="gm" aria-label="Fewer guests">&minus;</button><output id="go" aria-live="polite">1</output><button type="button" id="gp" aria-label="More guests">+</button></div>'+
+ (evc?'<label id="le">WHICH EVENTS WILL YOU ATTEND?</label><div class="opts" role="group" aria-labelledby="le">'+C.events.map(function(e,i){return '<label class="opt chip"><input type="checkbox" name="ev" value="'+i+'" checked><span>'+esc(e.name)+'</span></label>';}).join('')+'</div>':'')+'</div>'+
+ '<label for="fnote">A NOTE FOR THE COUPLE (OPTIONAL)</label><textarea id="fnote" maxlength="300" placeholder="Share a wish or a message"></textarea>'+
+ '<button class="btn" type="submit">SEND RSVP</button><p class="muted rh">Your reply opens in WhatsApp, ready to send.</p><p class="muted" id="fm" role="status"></p></form>'+
+ '<div id="ty" hidden></div></section>';
 h+='<section><div class="orn">◆</div><div class="cap">Save the date</div><div class="bigdate">'+esc(big)+'</div><p style="margin-top:18px">'+esc(C.closing)+'</p><div class="names" style="font-size:30px">'+esc(C.groom)+' &amp; '+esc(C.bride)+'</div></section>';
 document.getElementById("app").innerHTML=h;
 
-var f=document.getElementById("f");
-f.addEventListener("submit",function(ev){ev.preventDefault();
- var msg="RSVP – "+C.groom+" & "+C.bride+"\nName: "+document.getElementById("fn").value+"\nResponse: "+document.getElementById("fa").value+"\nGuests: "+document.getElementById("fg").value;
- if(!C.rsvpWhatsApp){document.getElementById("fm").textContent="RSVP contact not set yet.";return;}
- window.open("https://wa.me/"+C.rsvpWhatsApp+"?text="+encodeURIComponent(msg),"_blank");});
+var f=document.getElementById("f"),ty=document.getElementById("ty"),fm=document.getElementById("fm"),yes=document.getElementById("yes"),go=document.getElementById("go"),gc=1,MG=Math.max(1,+C.rsvpMaxGuests||10);
+function ans(){return f.querySelector('input[name="fa"]:checked').value;}
+[].forEach.call(f.querySelectorAll('input[name="fa"]'),function(r){r.addEventListener("change",function(){yes.hidden=ans()!=="yes";});});
+document.getElementById("gm").onclick=function(){gc=Math.max(1,gc-1);go.textContent=gc;};
+document.getElementById("gp").onclick=function(){gc=Math.min(MG,gc+1);go.textContent=gc;};
+f.addEventListener("submit",function(ev){ev.preventDefault();fm.textContent="";
+ var name=document.getElementById("fn").value.trim(),ok=ans()==="yes",note=document.getElementById("fnote").value.trim(),
+ evs=[].map.call(f.querySelectorAll('input[name="ev"]:checked'),function(x){return C.events[+x.value].name;});
+ if(!name){fm.textContent="Please enter your name.";return;}
+ if(ok&&C.events.length>1&&!evs.length){fm.textContent="Please choose at least one event.";return;}
+ if(!C.rsvpWhatsApp){fm.textContent="RSVP contact not set yet.";return;}
+ var L=["\uD83D\uDC8C *RSVP \u2013 "+C.groom+" & "+C.bride+"*","","\uD83D\uDC64 *Name:* "+name,ok?"\u2705 *Response:* Joyfully accept":"\uD83D\uDC94 *Response:* Regretfully decline"];
+ if(ok){L.push("\uD83D\uDC65 *Guests:* "+gc);if(C.events.length>1)L.push("\uD83C\uDF89 *Attending:* "+evs.join(", "));}
+ if(note)L.push("","\uD83D\uDCAC *Note:* "+note);
+ var url="https://wa.me/"+C.rsvpWhatsApp+"?text="+encodeURIComponent(L.join("\n"));
+ ty.innerHTML='<div class="orn">\u25C6</div><h3>Thank you, '+esc(name.split(/\s+/)[0])+'!</h3><p>'+(ok?'We can\u2019t wait to celebrate with you.':'You will be missed. Thank you for letting us know.')+'</p><p class="muted">One last step: press send in WhatsApp so your reply reaches us.</p><a class="btn" target="_blank" rel="noopener" href="'+esc(url)+'">OPEN WHATSAPP</a><button type="button" class="lnk" id="ed">Change my reply</button>';
+ f.hidden=true;ty.hidden=false;
+ document.getElementById("ed").onclick=function(){ty.hidden=true;f.hidden=false;};
+ window.open(url,"_blank");
+ ty.scrollIntoView({block:"center"});});
 
 if(wd){var target=new Date(wd.getFullYear(),wd.getMonth(),wd.getDate(),9,0).getTime();
  var first=C.events.filter(function(e){return e.date===C.weddingDate&&/^\d/.test(e.time||"");})[0];
